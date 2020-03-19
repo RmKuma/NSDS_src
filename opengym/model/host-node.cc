@@ -57,6 +57,8 @@ HostNode::HostNode ()
 , m_logCount{0}
 , m_epiCount{0}
 , m_gymPort{5555}
+, m_totalReward{0}
+, m_totalSteps{0}
 {}
 
 HostNode::~HostNode () {}
@@ -77,8 +79,9 @@ void HostNode::SetGymPort(uint16_t gymPort){
 	m_gymPort = gymPort;
 }
 
-void HostNode::AddTarget(uint16_t tier, Ipv4Address targetIp, uint16_t targetPort){
-	m_targetTable.AddTarget(tier, targetIp, targetPort);
+void HostNode::AddTarget(uint16_t target, Ipv4Address targetIp, uint16_t targetPort, Ptr<TargetNode> targetNode){
+	m_targetTable.AddTarget(target, targetIp, targetPort);
+	m_targetPtrs[target] = targetNode;
 }
 
 void HostNode::StartApplication ()
@@ -89,29 +92,18 @@ void HostNode::StartApplication ()
 
 	//Create Sockets between host and each target
 	for(uint16_t target = 0; target < m_targetTable.GetTotalTargets(); target++){
+		/*
 		if(!m_sockets[target]){
 			m_sockets[target] = Socket::CreateSocket( GetNode (), TcpSocketFactory::GetTypeId());
 		}
 		NS_ASSERT(m_sockets[target]);
 		m_sockets[target]->Connect(InetSocketAddress(m_targetTable.targetMap[target]->GetIp(), m_targetTable.targetMap[target]->GetPort()));
+		*/
+
 		m_targetSendEvent[target] = false;
+		m_targetPtrs[target]->SetRequestCallback(MakeCallback(&HostNode::HandleRead, this));
 	}
 
-	// Create Socket for received response
-	if(!m_resultSocket){
-		m_resultSocket = Socket::CreateSocket( GetNode(), TcpSocketFactory::GetTypeId());
-		auto local = InetSocketAddress { Ipv4Address::GetAny(), RESULTPORT};
-		if (m_resultSocket->Bind(local) == -1){
-			std::cout << "Bind Failed" << std::endl;
-		}
-		m_resultSocket->Listen();
-		m_resultSocket->ShutdownSend();
-		m_resultSocket->SetRecvCallback (MakeCallback (&HostNode::HandleRead, this));
-		m_resultSocket->SetAcceptCallback (
-	      MakeNullCallback<bool, Ptr<Socket>, const Address &> (),
-		  MakeCallback (&HostNode::HandleAccept, this));
-	}
-	
 	// Create Data Objects
 	m_targetTable.AddDataObjects(DATAS);
 	for(int user = 0; user < USERS; user++){
@@ -137,19 +129,13 @@ void HostNode::CreateUser(uint16_t userId){
 	// Create socket
 	uint16_t target = m_targetTable.dataObjectMap[dataObjectId]->GetTarget();
 	user->SetSendCallback(MakeCallback(&HostNode::SendReadRequestPacket,this));
-	std::cout << "User " << userId << ", dataObjectId : " <<  dataObjectId <<  ", data position " << target << ", Total Requests : " << user->GetTotalRequests() << ", serviceTime : " << serviceTime << ", targetDelay : " << targetDelay << std::endl;
+	//std::cout << "User " << userId << ", dataObjectId : " <<  dataObjectId <<  ", data position " << target << ", Total Requests : " << user->GetTotalRequests() << ", serviceTime : " << serviceTime << ", targetDelay : " << targetDelay << std::endl;
 	m_users[userId] = user;
 }
 
 
 void HostNode::StopApplication ()
 {
-	for(uint16_t target = 0; target < TARGETS; target++){
-		if(m_sockets[target] != 0){
-			m_sockets[target]->Close();
-		}	
-	}
-		
 	// Need to cancel all events.
 	for(uint16_t user = 0; user < USERS; user++){
 		m_users[user]->CancelSendEvent();
@@ -170,67 +156,15 @@ void HostNode::SendReadRequestPacket (uint16_t userId)
 {
 	uint16_t dataObjectId = m_users[userId]->GetDataObjectId();
 	uint16_t target = m_targetTable.dataObjectMap[dataObjectId]->GetTarget();
-	NVMeHeader header {};
-	NVMeTag tag {};
-	// CapsuleCmd is fixed as 72.
-    auto bytesToSend = 72 - header.GetSerializedSize();
 
-	// Simulation Speed Up
-	bytesToSend = bytesToSend/SPEEDUP;
-    const auto nowUs = Simulator::Now ().GetMicroSeconds ();
+    uint64_t  nowUs = Simulator::Now ().GetMicroSeconds ();
    	NS_ASSERT (nowUs >= 0); 
-	header.SetUserId(userId);
-	header.SetTimestamp(uint64_t(nowUs));
-	auto packet = Create<Packet> (bytesToSend);
-	auto NVMeRequest = Create<Packet> ();
-	NVMeRequest->AddHeader (header);
-	NVMeRequest->AddAtEnd (packet);
-	m_targetSendBuffer[target].push_back(NVMeRequest);
-	if(!m_targetSendEvent[target]){
-		Simulator::ScheduleNow(&HostNode::SendTargetFromBuffer, this, target);	
-		m_targetSendEvent[target] = true;
-	}
+	Simulator::ScheduleNow(&TargetNode::HandleRead,  m_targetPtrs[target], userId, nowUs);	
 }
 
-void HostNode::SendTargetFromBuffer(uint16_t target){
-	if(m_sockets[target]){
-		Ptr<Packet> packet = m_targetSendBuffer[target].front();
-		m_sockets[target]->Send(packet);
-		m_totalTx += packet->GetSize();
-		m_totalTxPackets++;
-	}
-		
-	m_targetSendBuffer[target].pop_front();
-	if(!m_targetSendBuffer[target].empty()){
-		Simulator::Schedule(NanoSeconds(1), &HostNode::SendTargetFromBuffer, this, target);
-		m_targetSendEvent[target] = true;
-	}else{
-		m_targetSendEvent[target] = false;
-	}
-}
-
-
-void HostNode::HandleRead (Ptr<Socket> socket){
-	Ptr<Packet> packet;
-	Address from;
-    const auto nowUs = Simulator::Now ().GetMicroSeconds ();
-	
-	while(packet= socket->RecvFrom(from)){
-		if(packet->GetSize () == 0){
-			return;
-		}
-		NVMeHeader header{};
-		packet->RemoveHeader(header);
-		uint16_t userId = header.GetUserId();
-		uint64_t timestamp = header.GetTimestamp();
-		m_users[userId]->AfterGetPacket(OR_PAGESIZE, (uint32_t)(nowUs-timestamp));
-		m_totalRx += OR_PAGESIZE;
-	}
-}
-
-void HostNode::HandleAccept (Ptr<Socket> socket, const Address& from){
-	socket->SetRecvCallback (MakeCallback (&HostNode::HandleRead, this));
-	m_resultSocketList.push_back(socket);
+void HostNode::HandleRead (uint16_t userId, uint64_t timestamp){
+    uint64_t nowUs = Simulator::Now ().GetMicroSeconds ();
+	m_users[userId]->AfterGetPacket(OR_PAGESIZE, (uint32_t)(nowUs-timestamp + 20));
 }
 
 void HostNode::Migration(uint16_t dataObject, uint16_t destination_target){
@@ -258,7 +192,7 @@ void HostNode::Observe (){
 	uint64_t x = 0, y = 0;
 	double successedUser = 0;
 
-	std::cout << "===============================================" << std::endl;
+	//std::cout << "===============================================" << std::endl;
 	for(uint16_t data = 0; data < DATAS; data++){
 		uint64_t check =0;
 		for(uint16_t user=0;user<USERS;user++)
@@ -287,9 +221,9 @@ void HostNode::Observe (){
 		//AVG throughput
 		uint64_t throughputSum = 0;
 		for(uint16_t user=0;user<USERS;user++)
-			if(m_users[user]->GetDataObjectId() == data) throughputSum += (m_users[user]->GetCurrentGoodput() * (1000/OBS_INTERVAL));
+			if(m_users[user]->GetDataObjectId() == data) throughputSum += m_users[user]->GetCurrentGoodput();
 		if(datas[data][0])	datas[data][5] = throughputSum/datas[data][0];
-		
+		/*
 		std::cout << "Data " << data << " N : " << datas[data][0] <<
 										" POS : " << datas[data][1] << 
 										" TD : " << datas[data][2] <<
@@ -298,32 +232,31 @@ void HostNode::Observe (){
 										" T : " << datas[data][5] <<
 										" P : " << m_targetTable.dataObjectMap[data]->GetPopularity() << 
 										std::endl;
-		
+		*/	
 	}
-	std::cout << "===============================================" << std::endl;
-
-	std::cout << "================== users ======================" << std::endl;
+	
+	//std::cout << "===============================================" << std::endl <<  "================== users ======================" << std::endl;
 
 	uint16_t reward= 0;
 
 	for(uint16_t user = 0; user < USERS; user++){
-		std::cout << " User " << user << 
+		/*std::cout << " User " << user << 
 		             " DATA : " << m_users[user]->GetDataObjectId() <<
 					 " SER : " << m_users[user]->GetServiceTime() << 
 					 " TD : " << m_users[user]->GetTargetDelay() <<
 					 " D : " << m_users[user]->GetCurrentDelay() <<
 					 " TT : " << m_users[user]->GetTargetThroughput() << 
-					 " T : " << m_users[user]->GetCurrentGoodput() * (1000/OBS_INTERVAL) << std::endl;
-		
+					 " T : " << m_users[user]->GetCurrentGoodput() << std::endl;
+		*/
 		if(m_users[user]->GetTargetDelay() > m_users[user]->GetCurrentDelay()
-			&& m_users[user]->GetTargetThroughput() * 0.9 < m_users[user]->GetCurrentGoodput() * (1000/OBS_INTERVAL))
+			&& m_users[user]->GetTargetThroughput() * 0.9 < m_users[user]->GetCurrentGoodput())
 			reward ++;
 		
 		m_users[user]->AfterGathering();
 		
 		//calculate reward
 		if(m_users[user]->IsFinished()){
-			PrintResult();
+			//PrintResult();
 			m_users[user]->Dispose();
 			CreateUser(user);
 			m_users[user]->SendRequest();
@@ -331,7 +264,10 @@ void HostNode::Observe (){
 
 	}
 	
-	std::cout << "=============reward : " << reward << "=================" << std::endl;
+	//std::cout << "=============reward : " << reward << "=================" << std::endl;
+	
+	m_totalSteps++;
+	m_totalReward += reward;
 
 	//HeuristicAction_knapsack(datas);
 	SendObs(datas, reward);	
@@ -353,10 +289,6 @@ void HostNode::HeuristicAction_knapsack(uint64_t datas[][6]){
 		}
 		index.push_back(idx);	
 	}
-
-	for(std::deque<uint16_t>::iterator it = index.begin(); it != index.end(); ++it)
-		std::cout << ' ' <<*it << " " << datas[*it][4] * datas[*it][0];
-	std::cout << std::endl;
 
 	uint16_t target = 0;
 	uint16_t check = 0;

@@ -58,20 +58,12 @@ uint16_t TargetTable::SelectData(){
 	for(uint16_t data = 0; data < m_totalDataObjects; data++){
 		totalPopul += dataObjectMap[data]->GetPopularity();
 	}
-
-	for(uint16_t data = 0; data < m_totalDataObjects; data++){
-		std::cout << data << " : " << dataObjectMap[data]->GetPopularity()/totalPopul << " ";
-	}
-
 	float check = dataObjectMap[0]->GetPopularity()/totalPopul ;
 	int index = 0;
 	while(r > check){
 		index++;
 		check += dataObjectMap[index]->GetPopularity()/totalPopul;
 	}
-	
-	std::cout << index << " " << r << " " << check << std::endl;
-
 	return index;
 }
 

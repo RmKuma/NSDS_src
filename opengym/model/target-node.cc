@@ -84,72 +84,31 @@ void TargetNode::SetTier(uint16_t tier){
 	m_requestDelay_b = 500 + (m_tier * 500);
 }
 
-void TargetNode::StartApplication ()
-{
-	//Create Sockets
-	
-	if(!m_requestSocketConnected){
-		m_requestSocket = Socket::CreateSocket( GetNode (), TcpSocketFactory::GetTypeId());
-		auto local = InetSocketAddress{Ipv4Address::GetAny(), REQUESTPORT};
-		if( m_requestSocket->Bind (local) == -1){
-			std::cout << "Bind Failed" << std::endl;
-		}
-		m_requestSocket->Listen();
-		m_requestSocket->ShutdownSend();
-		m_requestSocketConnected = true;
-	}
-
-	m_requestSocket->SetRecvCallback (MakeCallback (&TargetNode::HandleRead, this));
-	m_requestSocket->SetAcceptCallback (
-	  MakeNullCallback<bool, Ptr<Socket>, const Address &> (),
-	  MakeCallback (&TargetNode::HandleAccept, this));
-
-}
+void TargetNode::StartApplication (){}
 
 void TargetNode::StopApplication ()
 {
-	while(!m_requestSocketList.empty()){
-		Ptr<Socket> acceptedSocket = m_requestSocketList.front();
-		m_requestSocketList.pop_front();
-		acceptedSocket->Close();
-	}
-
-	if (m_requestSocket){
-		m_requestSocket->Close();
-		m_requestSocket->SetRecvCallback (MakeNullCallback<void, Ptr<Socket>> ());
-	}
-	
-	if (m_resultSocket){
-		m_resultSocket->Close();
-	}
-	
 	m_finished = true;
 	Simulator::Cancel (m_getRequestEvent);
 
 	std::cout << "TargetNode close" << std::endl;
-	// Need to cancel al3l event such as ...
 }
 
-void TargetNode::HandleRead (Ptr<Socket> socket){
-	GetNextRequestFromBuffer();
+void TargetNode::HandleRead (uint16_t userId, uint64_t timestamp){
+	if(m_rxBuffer.size() <= 128){
+		m_rxBuffer.push_back(std::make_pair(userId, timestamp));	
+		GetNextRequestFromBuffer();
+	}
 }
 
 void TargetNode::GetNextRequestFromBuffer (){
-	//std::cout << "QueueSize : " << m_submissionQueue.size() << std::endl;
 	while(!m_finished){
 		if(m_submissionQueue.size() >= QUEUE_DEPTH){
 			break;
 		}else{
-			Ptr<Socket> socket = m_requestSocketList.front();
-			Ptr<Packet> packet;
-			Address from;
-			if(packet = socket->RecvFrom(from)){
-				if(packet->GetSize () == 0)	return;
-				m_totalRx += packet->GetSize();
-
-				NVMeHeader header{};
-				packet->RemoveHeader(header);
-				m_submissionQueue.push_back(std::make_pair(header.GetUserId(), header.GetTimestamp()));
+			if(m_rxBuffer.size() > 0){
+				m_submissionQueue.push_back(std::make_pair(m_rxBuffer.front().first, m_rxBuffer.front().second));
+				m_rxBuffer.pop_front();
 				m_getRequestEvent = Simulator::Schedule (MicroSeconds(m_requestDelay_a * (m_submissionQueue.size()-1) + m_requestDelay_b), &TargetNode::SendReadResultPacket, this);
 			}else{
 				break;
@@ -159,38 +118,11 @@ void TargetNode::GetNextRequestFromBuffer (){
 }
 
 void TargetNode::SendReadResultPacket(){
-	NVMeHeader testHeader{};
-	auto segmentSize = 120;
-	auto bytesToSend = PAGESIZE;
-	
 	uint16_t userId = m_submissionQueue.front().first;
 	uint64_t timestamp = m_submissionQueue.front().second;
 	m_submissionQueue.pop_front();
-
-	if(m_resultSocketConnected){
-		NVMeHeader header{};
-		header.SetUserId(userId);
-		header.SetTimestamp(timestamp);
-		Ptr<Packet> packet;
-		packet = Create<Packet> (segmentSize-header.GetSerializedSize());
-		packet->AddHeader (header);
-		int actual = m_resultSocket->Send(packet);
-		m_totalTxPackets++;
-	}
+	m_requestCallback(userId, timestamp);	
 	GetNextRequestFromBuffer();
 }
-
-void TargetNode::HandleAccept (Ptr<Socket> socket, const Address& from){
-	if(!m_resultSocketConnected){
-		std::cout << "new Socket" << std::endl;
-		m_resultSocket = Socket::CreateSocket( GetNode (), TcpSocketFactory::GetTypeId());
-		Ipv4Address hostAddr = InetSocketAddress::ConvertFrom(from).GetIpv4();
-		m_resultSocket ->Connect(InetSocketAddress(hostAddr, RESULTPORT));
-		m_resultSocketConnected = true;
-	}
-	socket->SetRecvCallback (MakeCallback (&TargetNode::HandleRead, this));
-	m_requestSocketList.push_back(socket);
-}
-
 
 }

@@ -53,10 +53,13 @@ public:
 	uint64_t GetTotalTxPackets () const;
 	void SetTier (uint16_t tier);
 
-	void Test(){
-		std::cout << "testtarget" << std::endl;
+	typedef Callback<void, uint16_t, uint64_t> requestCallback;
+	requestCallback m_requestCallback;
+	void SetRequestCallback(requestCallback reqcb){
+		m_requestCallback = reqcb;
 	};
 
+	void HandleRead (uint16_t userId, uint64_t timestamp);
 private:
     virtual void StartApplication ();
     virtual void StopApplication ();
@@ -65,7 +68,6 @@ private:
 	//void EnqueueReadRequest(uint32_t flowNumber);
     //void SendReadRequestPacket ();
    
-	void HandleRead (Ptr<Socket> socket);
 	void HandleAccept (Ptr<Socket> socket, const Address& from);
 	void GetNextRequestFromBuffer ();
 	void SendReadResultPacket ();
@@ -95,7 +97,7 @@ private:
 	
 	
 	std::map<uint16_t, uint64_t> packetCounter;
-
+	std::deque<std::pair<uint16_t, uint64_t>> m_rxBuffer;
 };
 
 }

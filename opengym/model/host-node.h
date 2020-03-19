@@ -62,18 +62,21 @@ public:
 	uint64_t GetTotalRx () const;
 	
 	//void AddFlow(uint16_t tier, uint32_t initRate);
-	void AddTarget(uint16_t tier, Ipv4Address targetIp, uint16_t targetPort);
+	void AddTarget(uint16_t tier, Ipv4Address targetIp, uint16_t targetPort, Ptr<TargetNode> targetNode);
 
 	void SetGymPort(uint16_t gymPort);
 	void SendReset();
 	void CreateUser(uint16_t userId);
 	void PrintResult();
 
+	void HandleRead (uint16_t userId, uint64_t timestamp);
+	float GetAverageReward(){
+		return (float)m_totalReward/(float)m_totalSteps;
+	};
 private:
     virtual void StartApplication ();
     virtual void StopApplication ();
 
-    
 	/*Send Methods*/
 	//void EnqueueReadRequest(uint32_t flowNumber);
 	void HeuristicAction_knapsack(uint64_t obsArray[][6]);
@@ -81,7 +84,6 @@ private:
    	void SendTargetFromBuffer(uint16_t target);
 
     /*Recv Methods*/
-	void HandleRead (Ptr<Socket> socket);
     void HandleAccept(Ptr<Socket> socket, const Address& from);
 
 	void Observe();
@@ -100,7 +102,11 @@ private:
 	uint64_t m_totalTx, m_totalTxPackets;
 	uint64_t m_totalRx;
 
+	uint64_t m_totalReward;
+	uint64_t m_totalSteps;
+
 	TargetTable m_targetTable{};
+	std::map<uint16_t, Ptr<TargetNode>> m_targetPtrs;
 
 	std::map<uint32_t, Ptr<User>> m_users;
 	std::map<uint16_t, Ptr<Socket>> m_sockets;
@@ -115,6 +121,7 @@ private:
 	std::map<uint16_t, bool> m_targetSendEvent;
 	std::map<uint16_t, bool>  m_connecteds;
 	std::map<uint64_t, uint16_t> m_recvChecker;
+
 
 	EventId m_readRequestEnqueueEvent;			// Event
 	EventId m_SendRateChangeEvent;				// Event

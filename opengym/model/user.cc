@@ -30,7 +30,6 @@ void User::SetSendCallback(sendCallback scb){
 	m_sendCallback = scb;
 }
 
-
 void User::SendRequest(){
 	if(!m_finished){
 		if(sendCounter.find(m_dataObjectId) == sendCounter.end())
@@ -59,8 +58,7 @@ void User::AfterGetPacket(uint64_t size, uint64_t delay){
 	else
 		receiveCounter[m_dataObjectId]++;
 	
-	if(m_currentResults == m_totalRequests * 2){
-		std::cout << m_userId << " with avg delay " << m_currentDelay/m_currentPackets<< std::endl;
+	if(m_currentResults == m_totalRequests){
 		m_finished = true;
 	}
 }
