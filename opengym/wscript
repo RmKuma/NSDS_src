@@ -1,0 +1,54 @@
+# -*- Mode: python; py-indent-offset: 4; indent-tabs-mode: nil; coding: utf-8; -*-
+
+# def options(opt):
+#     pass
+
+def configure(conf):
+#     conf.check_nonfatal(header_name='stdint.h', define_name='HAVE_STDINT_H')
+	conf.env['ENABLE_ZMQ'] = conf.check(mandatory=False, lib='zmq', define_name='Have_ZMQ', uselib='ZMQ')
+	conf.env.append_value("LINKFLAGS", ["-lzmq"])
+	conf.env.append_value("LIB", ["zmq"])
+
+
+def build(bld):
+    module = bld.create_ns3_module('opengym', ['core'])
+    module.source = [
+        'model/opengym.cc',
+		'model/flow.cc',
+		'model/nvme-header.cc',
+		'model/nvme-tag.cc',	
+		'model/host-node.cc',
+		'model/target-node.cc',
+		'model/target-table.cc',
+		'model/jsoncpp.cpp',
+		'model/user.cc',
+        'helper/opengym-helper.cc',
+        ]
+
+    module_test = bld.create_ns3_module_test_library('opengym')
+    module_test.source = [
+        'test/opengym-test-suite.cc',
+        ]
+
+    headers = bld(features='ns3header')
+    headers.module = 'opengym'
+    headers.source = [
+        'model/opengym.h',
+		'model/flow.h',
+		'model/nvme-header.h',
+		'model/nvme-tag.h',
+		'model/host-node.h',
+		'model/target-node.h',
+		'model/json/json-forwards.h',
+		'model/json/json.h',
+		'model/opengym-parameter.h',
+		'model/target-table.h',
+		'model/user.h',
+        'helper/opengym-helper.h',
+        ]
+
+    if bld.env.ENABLE_EXAMPLES:
+        bld.recurse('examples')
+
+    # bld.ns3_python_bindings()
+

@@ -1,0 +1,47 @@
+#include "target-table.h"
+#include <cmath>
+
+namespace ns3 {
+
+TargetTable::TargetTable()
+: m_totalTargets{0}
+{}
+
+
+TargetTable::AddTarget(uint16_t tier, Ipv4Address ip, uint16_t port){
+	Ptr<TargetElement> target = new TargetElement(tier, ip, port, TARGETSIZE);
+	targetMap[m_totalTargets++] = target;
+}
+
+TargetTable::AddDataObjects(uint16_t numberOfData){
+	// Count Total number of tiers
+	uint16_t totalNumTiers = 0;
+	for(uint16_t tier = 0; tier < NUMOFTIER ; tier++){
+		totalNumTiers += TIERS[tier];
+	}
+
+	NS_ASSERT(totalNumTiers != m_totalTargets);
+	NS_ASSERT((TARGETSIZE / FILESIZE) * m_totalTargets < numberOfData);
+	
+	// Initial zipf variable
+	float total = 0;
+	for(uint16_t data = 0; data < numberOfData; data++){
+		total += (1/std::pow(data+1, ZIPFALPHA));
+	}
+
+	// Make data objects
+	int target = 0;
+	for(uint16_t data = 0; data < numberOfData; data++){
+		float popul = (1/std::pow(data+1, ZIPFALPHA))/total;
+		Ptr<DataObject> dataObject = new DataObject(data, FILESIZE, target, popul);
+		target = (target+1) % m_totalTargets;
+	}
+
+
+}
+
+
+
+
+
+}
