@@ -56,6 +56,9 @@ main (int argc, char *argv[])
 	int gym_port = 5555;
 	bool heuristic = false;
 
+	float epiRewardSum = 0;
+	float epi = 0;
+
 	CommandLine cmd;
 	cmd.AddValue ("verbose", "Tell application to log if true", verbose);
 	cmd.AddValue ("gymport", "Port number for gym communication", gym_port);
@@ -128,7 +131,7 @@ main (int argc, char *argv[])
 		hostApp-> SetGymPort(gym_port);
 
 		for (uint16_t target = 0; target < numTargets; target++){
-			hostApp-> AddTarget(target, ipMap[target], port);
+			hostApp-> AddTarget(target, ipMap[target], port, appMap[target]);
 		}
 
 		for (uint32_t flow = 0; flow < numFlows; flow++){
@@ -144,19 +147,9 @@ main (int argc, char *argv[])
 		Simulator::Run ();
 		Simulator::Destroy ();
 	
-		hostApp->PrintResult();	
-
-		std::cout << "Host Total Bytes Send : " << hostApp->GetTotalTx () << std::endl;
-		std::cout << "Host Total Num Packets Send : " << hostApp->GetTotalTxPackets () << std::endl;
-		std::cout << "Host Total Bytes Received : " << hostApp->GetTotalRx () << std::endl;
-
-		for (uint16_t target = 0; target < numTargets; target++){
-			std::cout << "Target " << target << " Total Bytes Received : " << appMap[target]->GetTotalRx () << std::endl;
-			std::cout << "Target " << target << " Total Num Packets Sent : " << appMap[target]->GetTotalTxPackets () << std::endl;
-			std::cout << "Target " << target << " Total Num Packets Received : " << appMap[target]->GetTotalRxPackets () << std::endl;
-
-		}
-		
+		epiRewardSum += hostApp->GetAverageReward();
+		epi++;
+		std::cout << "AVG REWARD : " << epiRewardSum / epi << std::endl;
 	}
 	std::cout << "Simulator ENDED" << std::endl;
 }

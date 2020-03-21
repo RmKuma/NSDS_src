@@ -170,6 +170,7 @@ void HostNode::HandleRead (uint16_t userId, uint64_t timestamp){
 void HostNode::Migration(uint16_t dataObject, uint16_t destination_target){
 	uint16_t currentTarget = m_targetTable.dataObjectMap[dataObject]->GetTarget();
 	
+	std::cout << "target : " << destination_target << ", max,current : " << m_targetTable.targetMap[destination_target]->m_maxSize << " " << m_targetTable.targetMap[destination_target]->m_currentSize << std::endl;
 	if(m_targetTable.targetMap[destination_target]->CheckRemainingSpace(FILESIZE)){
 		//Remove data Object from original target
 		m_targetTable.targetMap[currentTarget]->RemoveData(dataObject);
@@ -223,7 +224,7 @@ void HostNode::Observe (){
 		for(uint16_t user=0;user<USERS;user++)
 			if(m_users[user]->GetDataObjectId() == data) throughputSum += m_users[user]->GetCurrentGoodput();
 		if(datas[data][0])	datas[data][5] = throughputSum/datas[data][0];
-		/*
+		
 		std::cout << "Data " << data << " N : " << datas[data][0] <<
 										" POS : " << datas[data][1] << 
 										" TD : " << datas[data][2] <<
@@ -232,22 +233,22 @@ void HostNode::Observe (){
 										" T : " << datas[data][5] <<
 										" P : " << m_targetTable.dataObjectMap[data]->GetPopularity() << 
 										std::endl;
-		*/	
+			
 	}
 	
-	//std::cout << "===============================================" << std::endl <<  "================== users ======================" << std::endl;
+	std::cout << "===============================================" << std::endl <<  "================== users ======================" << std::endl;
 
 	uint16_t reward= 0;
 
 	for(uint16_t user = 0; user < USERS; user++){
-		/*std::cout << " User " << user << 
+		std::cout << " User " << user << 
 		             " DATA : " << m_users[user]->GetDataObjectId() <<
 					 " SER : " << m_users[user]->GetServiceTime() << 
 					 " TD : " << m_users[user]->GetTargetDelay() <<
 					 " D : " << m_users[user]->GetCurrentDelay() <<
 					 " TT : " << m_users[user]->GetTargetThroughput() << 
 					 " T : " << m_users[user]->GetCurrentGoodput() << std::endl;
-		*/
+		
 		if(m_users[user]->GetTargetDelay() > m_users[user]->GetCurrentDelay()
 			&& m_users[user]->GetTargetThroughput() * 0.9 < m_users[user]->GetCurrentGoodput())
 			reward ++;

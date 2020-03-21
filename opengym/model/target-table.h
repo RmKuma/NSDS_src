@@ -56,10 +56,12 @@ namespace ns3 {
 
 class TargetElement : public Object
 {
-private:
-	uint16_t m_tier;
+public:
 	uint64_t m_maxSize;
 	uint64_t m_currentSize;
+
+private:
+	uint16_t m_tier;
 	std::map<uint16_t, Ptr<DataObject>> dataObjectMap;
 	Ipv4Address m_ip;
 	uint16_t m_port;
@@ -70,6 +72,7 @@ public:
 		m_ip = ip;
 		m_port = port;
 		m_maxSize = size;
+		m_currentSize = 0;
 	};
 	~TargetElement () {};
 
@@ -79,11 +82,13 @@ public:
 
 	void RemoveData(uint16_t dataObjectId){
 		dataObjectMap.erase(dataObjectId);
+		m_currentSize -= FILESIZE;
 	}
 
 	bool AddData(uint16_t dataObjectId, uint64_t dataObjectSize, Ptr<DataObject> dataObject){
 		if (CheckRemainingSpace(dataObjectSize)){
 			dataObjectMap[dataObjectId] = dataObject;
+			m_currentSize += FILESIZE;
 			return true;
 		}else{
 			return false;
