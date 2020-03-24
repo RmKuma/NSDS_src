@@ -102,8 +102,8 @@ private:
 	uint64_t m_totalTx, m_totalTxPackets;
 	uint64_t m_totalRx;
 
-	uint64_t m_totalReward;
-	uint64_t m_totalSteps;
+	int64_t m_totalReward;
+	int64_t m_totalSteps;
 
 	TargetTable m_targetTable{};
 	std::map<uint16_t, Ptr<TargetNode>> m_targetPtrs;
