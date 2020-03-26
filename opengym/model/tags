@@ -8,7 +8,7 @@ ALIGNAS	jsoncpp.cpp	2471;"	d	file:
 ALIGNAS	jsoncpp.cpp	2473;"	d	file:
 AddData	target-table.h	/^	bool AddData(uint16_t dataObjectId, uint64_t dataObjectSize, Ptr<DataObject> dataObject){$/;"	f	class:ns3::TargetElement
 AddDataObjects	target-table.cc	/^void TargetTable::AddDataObjects(uint16_t numberOfData){$/;"	f	class:ns3::TargetTable
-AddTarget	host-node.cc	/^void HostNode::AddTarget(uint16_t tier, Ipv4Address targetIp, uint16_t targetPort){$/;"	f	class:ns3::HostNode
+AddTarget	host-node.cc	/^void HostNode::AddTarget(uint16_t target, Ipv4Address targetIp, uint16_t targetPort, Ptr<TargetNode> targetNode){$/;"	f	class:ns3::HostNode
 AddTarget	target-table.cc	/^void TargetTable::AddTarget(uint16_t tier, Ipv4Address ip, uint16_t port){$/;"	f	class:ns3::TargetTable
 AfterGathering	flow.cc	/^void Flow::AfterGathering(){$/;"	f	class:ns3::Flow
 AfterGathering	user.cc	/^void User::AfterGathering(){$/;"	f	class:ns3::User
@@ -52,6 +52,7 @@ Features	json/json.h	/^class JSON_API Features {$/;"	c	namespace:Json
 Flow	flow.cc	/^Flow::Flow ()$/;"	f	class:ns3::Flow
 Flow	flow.cc	/^Flow::Flow (uint32_t flowNumber)$/;"	f	class:ns3::Flow
 Flow	flow.h	/^class Flow : public Object$/;"	c	namespace:ns3
+GetAverageReward	host-node.h	/^	float GetAverageReward(){$/;"	f	class:ns3::HostNode
 GetCurrentDelay	flow.cc	/^uint32_t Flow::GetCurrentDelay(){$/;"	f	class:ns3::Flow
 GetCurrentDelay	user.h	/^	uint64_t GetCurrentDelay(){$/;"	f	class:ns3::User
 GetCurrentGoodput	flow.cc	/^uint32_t Flow::GetCurrentGoodput(){$/;"	f	class:ns3::Flow
@@ -96,10 +97,8 @@ GetTypeId	nvme-tag.cc	/^TypeId NVMeTag::GetTypeId ()$/;"	f	class:ns3::NVMeTag
 GetUserId	nvme-header.cc	/^uint16_t NVMeHeader::GetUserId () const$/;"	f	class:ns3::NVMeHeader
 GetUserId	user.h	/^	uint16_t GetUserId(){$/;"	f	class:ns3::User
 HOST_NODE_H	host-node.h	28;"	d
-HandleAccept	host-node.cc	/^void HostNode::HandleAccept (Ptr<Socket> socket, const Address& from){$/;"	f	class:ns3::HostNode
-HandleAccept	target-node.cc	/^void TargetNode::HandleAccept (Ptr<Socket> socket, const Address& from){$/;"	f	class:ns3::TargetNode
-HandleRead	host-node.cc	/^void HostNode::HandleRead (Ptr<Socket> socket){$/;"	f	class:ns3::HostNode
-HandleRead	target-node.cc	/^void TargetNode::HandleRead (Ptr<Socket> socket){$/;"	f	class:ns3::TargetNode
+HandleRead	host-node.cc	/^void HostNode::HandleRead (uint16_t userId, uint64_t timestamp){$/;"	f	class:ns3::HostNode
+HandleRead	target-node.cc	/^void TargetNode::HandleRead (uint16_t userId, uint64_t timestamp){$/;"	f	class:ns3::TargetNode
 HeuristicAction_knapsack	host-node.cc	/^void HostNode::HeuristicAction_knapsack(uint64_t datas[][6]){$/;"	f	class:ns3::HostNode
 HostNode	host-node.cc	/^HostNode::HostNode ()$/;"	f	class:ns3::HostNode
 HostNode	host-node.h	/^class HostNode: public Application$/;"	c	namespace:ns3
@@ -255,12 +254,12 @@ SendReadRequestPacket	host-node.cc	/^void HostNode::SendReadRequestPacket (uint1
 SendReadResultPacket	target-node.cc	/^void TargetNode::SendReadResultPacket(){$/;"	f	class:ns3::TargetNode
 SendRequest	user.cc	/^void User::SendRequest(){$/;"	f	class:ns3::User
 SendReset	host-node.cc	/^void HostNode::SendReset(){$/;"	f	class:ns3::HostNode
-SendTargetFromBuffer	host-node.cc	/^void HostNode::SendTargetFromBuffer(uint16_t target){$/;"	f	class:ns3::HostNode
 Serialize	nvme-header.cc	/^void NVMeHeader::Serialize (Buffer::Iterator start) const$/;"	f	class:ns3::NVMeHeader
 Serialize	nvme-tag.cc	/^void NVMeTag::Serialize (ns3::TagBuffer start) const$/;"	f	class:ns3::NVMeTag
 SetGymPort	host-node.cc	/^void HostNode::SetGymPort(uint16_t gymPort){$/;"	f	class:ns3::HostNode
 SetPopularity	target-table.h	/^			void SetPopularity(float popularity){$/;"	f	class:ns3::DataObject
 SetRate	flow.cc	/^void Flow::SetRate(uint32_t sendRate){$/;"	f	class:ns3::Flow
+SetRequestCallback	target-node.h	/^	void SetRequestCallback(requestCallback reqcb){$/;"	f	class:ns3::TargetNode
 SetSendCallback	flow.cc	/^void Flow::SetSendCallback(sendCallback scb){$/;"	f	class:ns3::Flow
 SetSendCallback	user.cc	/^void User::SetSendCallback(sendCallback scb){$/;"	f	class:ns3::User
 SetTarget	target-table.h	/^			void SetTarget(uint16_t target){$/;"	f	class:ns3::DataObject
@@ -272,7 +271,7 @@ SetTimestamp	nvme-header.cc	/^void NVMeHeader::SetTimestamp (uint64_t timestamp)
 SetTimestamp	nvme-tag.cc	/^void NVMeTag::SetTimestamp (uint64_t timestamp)$/;"	f	class:ns3::NVMeTag
 SetUserId	nvme-header.cc	/^void NVMeHeader::SetUserId (uint16_t userId)$/;"	f	class:ns3::NVMeHeader
 StartApplication	host-node.cc	/^void HostNode::StartApplication ()$/;"	f	class:ns3::HostNode
-StartApplication	target-node.cc	/^void TargetNode::StartApplication ()$/;"	f	class:ns3::TargetNode
+StartApplication	target-node.cc	/^void TargetNode::StartApplication (){}$/;"	f	class:ns3::TargetNode
 StaticString	json/json.h	/^  explicit StaticString(const char* czstring) : c_str_(czstring) {}$/;"	f	class:Json::StaticString
 StaticString	json/json.h	/^class JSON_API StaticString {$/;"	c	namespace:Json
 StopApplication	host-node.cc	/^void HostNode::StopApplication ()$/;"	f	class:ns3::HostNode
@@ -573,12 +572,14 @@ m_currentRequests	user.h	/^	uint64_t m_currentRequests;		\/\/ amount of requests
 m_currentResults	user.h	/^	uint64_t m_currentResults;		\/\/ amount of results received before gathering$/;"	m	class:ns3::User
 m_currentSize	target-table.h	/^	uint64_t m_currentSize;$/;"	m	class:ns3::TargetElement
 m_dataObjectId	user.h	/^	uint16_t m_dataObjectId;$/;"	m	class:ns3::User
-m_dataObjectTable	target-table.h	134;"	d
+m_dataObjectTable	target-table.h	139;"	d
 m_dataSize	target-table.h	/^			uint64_t m_dataSize;$/;"	m	class:ns3::DataObject
 m_epiCount	host-node.h	/^	uint32_t m_epiCount;$/;"	m	class:ns3::HostNode
+m_finished	target-node.h	/^	bool m_finished;$/;"	m	class:ns3::TargetNode
 m_finished	user.h	/^	bool m_finished;$/;"	m	class:ns3::User
 m_flowEvents	host-node.h	/^	std::map<uint32_t, EventId> m_flowEvents;	\/\/ Event$/;"	m	class:ns3::HostNode
 m_flowNumber	flow.h	/^	uint32_t m_flowNumber;$/;"	m	class:ns3::Flow
+m_getRequestEvent	target-node.h	/^	EventId m_getRequestEvent;$/;"	m	class:ns3::TargetNode
 m_gymPort	host-node.h	/^	uint16_t m_gymPort;$/;"	m	class:ns3::HostNode
 m_intervalMicroSeconds	flow.h	/^	uint32_t m_intervalMicroSeconds;$/;"	m	class:ns3::Flow
 m_ip	target-table.h	/^	Ipv4Address m_ip;$/;"	m	class:ns3::TargetElement
@@ -592,6 +593,7 @@ m_popularity	target-table.h	/^			float m_popularity;$/;"	m	class:ns3::DataObject
 m_port	target-table.h	/^	uint16_t m_port;$/;"	m	class:ns3::TargetElement
 m_readRequestEnqueueEvent	host-node.h	/^	EventId m_readRequestEnqueueEvent;			\/\/ Event$/;"	m	class:ns3::HostNode
 m_recvChecker	host-node.h	/^	std::map<uint64_t, uint16_t> m_recvChecker;$/;"	m	class:ns3::HostNode
+m_requestCallback	target-node.h	/^	requestCallback m_requestCallback;$/;"	m	class:ns3::TargetNode
 m_requestDelay_a	target-node.h	/^	uint64_t m_requestDelay_a, m_requestDelay_b;$/;"	m	class:ns3::TargetNode
 m_requestDelay_b	target-node.h	/^	uint64_t m_requestDelay_a, m_requestDelay_b;$/;"	m	class:ns3::TargetNode
 m_requestInterval	user.h	/^	uint64_t m_requestInterval;   $/;"	m	class:ns3::User
@@ -603,6 +605,7 @@ m_resultSocket	host-node.h	/^	Ptr<Socket> m_resultSocket;$/;"	m	class:ns3::HostN
 m_resultSocket	target-node.h	/^	Ptr<Socket> m_resultSocket;$/;"	m	class:ns3::TargetNode
 m_resultSocketConnected	target-node.h	/^	bool  m_resultSocketConnected;$/;"	m	class:ns3::TargetNode
 m_resultSocketList	host-node.h	/^	std::list<Ptr<Socket>> m_resultSocketList;$/;"	m	class:ns3::HostNode
+m_rxBuffer	target-node.h	/^	std::deque<std::pair<uint16_t, uint64_t>> m_rxBuffer;$/;"	m	class:ns3::TargetNode
 m_sendCallback	flow.h	/^	sendCallback m_sendCallback;$/;"	m	class:ns3::Flow
 m_sendCallback	user.h	/^	sendCallback m_sendCallback;$/;"	m	class:ns3::User
 m_sendRate	flow.h	/^	float m_sendRate;$/;"	m	class:ns3::Flow
@@ -612,6 +615,7 @@ m_submissionQueue	target-node.h	/^	std::deque<std::pair<uint16_t, uint64_t>> m_s
 m_target	target-table.h	/^			uint16_t m_target;$/;"	m	class:ns3::DataObject
 m_targetDelay	flow.h	/^	uint32_t m_targetDelay;$/;"	m	class:ns3::Flow
 m_targetDelay	user.h	/^	uint64_t m_targetDelay;		$/;"	m	class:ns3::User
+m_targetPtrs	host-node.h	/^	std::map<uint16_t, Ptr<TargetNode>> m_targetPtrs;$/;"	m	class:ns3::HostNode
 m_targetSendBuffer	host-node.h	/^	std::map<uint16_t, std::deque<Ptr<Packet>>> m_targetSendBuffer;$/;"	m	class:ns3::HostNode
 m_targetSendEvent	host-node.h	/^	std::map<uint16_t, bool> m_targetSendEvent;$/;"	m	class:ns3::HostNode
 m_targetWorked	target-node.h	/^	bool  m_targetWorked;$/;"	m	class:ns3::TargetNode
@@ -623,9 +627,11 @@ m_timestamp	nvme-header.h	/^	uint64_t m_timestamp;$/;"	m	class:ns3::NVMeHeader
 m_timestamp	nvme-tag.h	/^    uint64_t m_timestamp;$/;"	m	class:ns3::NVMeTag
 m_totalDataObjects	target-table.h	/^	uint16_t m_totalDataObjects;$/;"	m	class:ns3::TargetTable
 m_totalRequests	user.h	/^	uint64_t m_totalRequests;		\/\/ Total amount of requests to send$/;"	m	class:ns3::User
+m_totalReward	host-node.h	/^	int64_t m_totalReward;$/;"	m	class:ns3::HostNode
 m_totalRx	host-node.h	/^	uint64_t m_totalRx;$/;"	m	class:ns3::HostNode
 m_totalRx	target-node.h	/^	uint64_t m_totalRx, m_totalRxPackets, m_totalTxPackets;$/;"	m	class:ns3::TargetNode
 m_totalRxPackets	target-node.h	/^	uint64_t m_totalRx, m_totalRxPackets, m_totalTxPackets;$/;"	m	class:ns3::TargetNode
+m_totalSteps	host-node.h	/^	int64_t m_totalSteps;$/;"	m	class:ns3::HostNode
 m_totalTargets	target-table.h	/^	uint16_t m_totalTargets;$/;"	m	class:ns3::TargetTable
 m_totalTx	host-node.h	/^	uint64_t m_totalTx, m_totalTxPackets;$/;"	m	class:ns3::HostNode
 m_totalTxPackets	host-node.h	/^	uint64_t m_totalTx, m_totalTxPackets;$/;"	m	class:ns3::HostNode
@@ -798,6 +804,7 @@ removeMember	jsoncpp.cpp	/^bool Value::removeMember(const char* begin, const cha
 removeMember	jsoncpp.cpp	/^bool Value::removeMember(const char* key, Value* removed) {$/;"	f	class:Json::Value
 removeMember	jsoncpp.cpp	/^void Value::removeMember(const String& key) { removeMember(key.c_str()); }$/;"	f	class:Json::Value
 removeMember	jsoncpp.cpp	/^void Value::removeMember(const char* key) {$/;"	f	class:Json::Value
+requestCallback	target-node.h	/^	typedef Callback<void, uint16_t, uint64_t> requestCallback;$/;"	t	class:ns3::TargetNode
 resize	jsoncpp.cpp	/^void Value::resize(ArrayIndex newSize) {$/;"	f	class:Json::Value
 resolve	jsoncpp.cpp	/^Value Path::resolve(const Value& root, const Value& defaultValue) const {$/;"	f	class:Json::Path
 resolve	jsoncpp.cpp	/^const Value& Path::resolve(const Value& root) const {$/;"	f	class:Json::Path

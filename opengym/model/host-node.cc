@@ -171,7 +171,8 @@ void HostNode::Migration(uint16_t dataObject, uint16_t destination_target){
 	uint16_t currentTarget = m_targetTable.dataObjectMap[dataObject]->GetTarget();
 	
 	//std::cout << "target : " << destination_target << ", max,current : " << m_targetTable.targetMap[destination_target]->m_maxSize << " " << m_targetTable.targetMap[destination_target]->m_currentSize << std::endl;
-	if(m_targetTable.targetMap[destination_target]->CheckRemainingSpace(FILESIZE)){
+	//if(m_targetTable.targetMap[destination_target]->CheckRemainingSpace(FILESIZE)){
+	if(true){
 		//Remove data Object from original target
 		m_targetTable.targetMap[currentTarget]->RemoveData(dataObject);
 		
@@ -193,7 +194,7 @@ void HostNode::Observe (){
 	uint64_t x = 0, y = 0;
 	double successedUser = 0;
 
-	//std::cout << "===============================================" << std::endl;
+	//std::cout << "====================== datas =========================" << std::endl;
 	for(uint16_t data = 0; data < DATAS; data++){
 		uint64_t check =0;
 		for(uint16_t user=0;user<USERS;user++)
@@ -224,8 +225,8 @@ void HostNode::Observe (){
 		for(uint16_t user=0;user<USERS;user++)
 			if(m_users[user]->GetDataObjectId() == data) throughputSum += m_users[user]->GetCurrentGoodput();
 		if(datas[data][0])	datas[data][5] = throughputSum/datas[data][0];
-		/*
-		std::cout << "Data " << data << " N : " << datas[data][0] <<
+		
+	/*	std::cout << "Data " << data << " N : " << datas[data][0] <<
 										" POS : " << datas[data][1] << 
 										" TD : " << datas[data][2] <<
 										" D : " << datas[data][3] <<
@@ -233,7 +234,7 @@ void HostNode::Observe (){
 										" T : " << datas[data][5] <<
 										" P : " << m_targetTable.dataObjectMap[data]->GetPopularity() << 
 										std::endl;
-		*/	
+	*/		
 	}
 	
 	//std::cout << "===============================================" << std::endl <<  "================== users ======================" << std::endl;
@@ -292,18 +293,23 @@ void HostNode::HeuristicAction_knapsack(uint64_t datas[][6]){
 		index.push_back(idx);	
 	}
 
+	for(int i = 0; i<DATAS; i++){
+		Migration(i,2);
+	}
 	uint16_t target = 0;
-	uint16_t check = 0;
+	uint16_t check = 1;
 	while(index.size() != 0){
 		uint16_t idx = index.front();
 		Migration(idx, target);
-		check++;
 		if(check == (TARGETSIZE/FILESIZE)){
 			check = 0;
 			target++;
 		}
+		check++;
+		//std::cout<<idx<<":"<<target<<" "<<std::endl;
 		index.pop_front();
 	}
+	//std::cout<<"\n"<<std::endl;
 }
 
 void HostNode::PopularityChangeStart(){
@@ -377,7 +383,7 @@ void HostNode::SendObs(uint64_t obsArray[][6], int32_t reward){
 	if(actionStr != "reset"){
 		reader.parse(actionStr, actionJson);
 		if(!m_logCount){
-			
+				
 			std::cout << "Action is : " ;
 			for(uint16_t data = 0; data < DATAS; data++){
 				uint16_t changedTier = (uint16_t)(actionJson["action"][data].asInt());

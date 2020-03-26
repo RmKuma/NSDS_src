@@ -65,8 +65,8 @@ main (int argc, char *argv[])
 	cmd.AddValue ("heuristic", "Port number for gym communication", heuristic);
 	cmd.Parse (argc,argv);
 
-	while(1){
-		std::cout << "1 Episode Start" << std::endl;
+	while(true){
+		std::cout << epi<<"Episode Start" << std::endl;
 
 		LogComponentEnable ("HostNode", LOG_LEVEL_DEBUG);
 		NS_LOG_INFO("Create router nodes.");
@@ -146,10 +146,11 @@ main (int argc, char *argv[])
 		
 		Simulator::Run ();
 		Simulator::Destroy ();
-	
+
+		std::cout << "EPI REWARD : " << hostApp->GetAverageReward()*200 << std::endl;	
 		epiRewardSum += hostApp->GetAverageReward();
 		epi++;
-		std::cout << "AVG REWARD : " << epiRewardSum / epi << std::endl;
+		std::cout << "AVG REWARD : " << epiRewardSum / epi * 200 << std::endl;
 	}
 	std::cout << "Simulator ENDED" << std::endl;
 }
