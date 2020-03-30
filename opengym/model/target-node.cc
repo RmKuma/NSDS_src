@@ -80,8 +80,8 @@ void TargetNode::SetTier(uint16_t tier){
 	m_tier = tier;
 
 	//Tier set delay
-	m_requestDelay_a = 100 + (m_tier * 100);
-	m_requestDelay_b = 500 + (m_tier * 500);
+	m_requestDelay_a = (2 + (m_tier * 1)) * DELAY_UP;
+	m_requestDelay_b = (70 + (m_tier * 20)) * DELAY_UP;
 }
 
 void TargetNode::StartApplication (){}
@@ -94,9 +94,9 @@ void TargetNode::StopApplication ()
 	std::cout << "TargetNode close" << std::endl;
 }
 
-void TargetNode::HandleRead (uint16_t userId, uint64_t timestamp){
+void TargetNode::HandleRead (uint16_t userId, uint64_t timestamp, int16_t type){
 	if(m_rxBuffer.size() <= 128){
-		m_rxBuffer.push_back(std::make_pair(userId, timestamp));	
+		m_rxBuffer.push_back(std::make_tuple(userId, timestamp, type));	
 		GetNextRequestFromBuffer();
 	}
 }
@@ -107,9 +107,9 @@ void TargetNode::GetNextRequestFromBuffer (){
 			break;
 		}else{
 			if(m_rxBuffer.size() > 0){
-				m_submissionQueue.push_back(std::make_pair(m_rxBuffer.front().first, m_rxBuffer.front().second));
+				m_submissionQueue.push_back(std::make_tuple(std::get<0>(m_rxBuffer.front()), std::get<1>(m_rxBuffer.front()), std::get<2>(m_rxBuffer.front())));
 				m_rxBuffer.pop_front();
-				m_getRequestEvent = Simulator::Schedule (MicroSeconds(m_requestDelay_a * (m_submissionQueue.size()-1) + m_requestDelay_b), &TargetNode::SendReadResultPacket, this);
+				m_getRequestEvent = Simulator::Schedule (MicroSeconds(m_requestDelay_a * (m_submissionQueue.size()-1) + m_requestDelay_b), &TargetNode::SendResponsePacket, this);
 			}else{
 				break;
 			}
@@ -117,11 +117,13 @@ void TargetNode::GetNextRequestFromBuffer (){
 	}
 }
 
-void TargetNode::SendReadResultPacket(){
-	uint16_t userId = m_submissionQueue.front().first;
-	uint64_t timestamp = m_submissionQueue.front().second;
+void TargetNode::SendResponsePacket(){
+	uint16_t userId = std::get<0>(m_submissionQueue.front());
+	uint64_t timestamp = std::get<1>(m_submissionQueue.front());
+	int16_t type = std::get<2>(m_submissionQueue.front());
+
 	m_submissionQueue.pop_front();
-	m_requestCallback(userId, timestamp);	
+	m_requestCallback(userId, timestamp, type);	
 	GetNextRequestFromBuffer();
 }
 

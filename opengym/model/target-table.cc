@@ -16,9 +16,6 @@ void TargetTable::AddTarget(uint16_t tier, Ipv4Address ip, uint16_t port){
 	else
 		target = new TargetElement(tier, ip, port, TARGETSIZE);
 	targetMap[m_totalTargets++] = target;
-
-	// Check
-	std::cout << "Target : " << m_totalTargets-1 << " " << ip << " " << port  << " " << target->GetTier()<< std::endl;
 }
 
 void TargetTable::AddDataObjects(uint16_t numberOfData){
@@ -67,7 +64,89 @@ uint16_t TargetTable::SelectData(){
 	return index;
 }
 
+uint16_t TargetTable::GetTargetOfDataObject(uint16_t dataId){
+	for(auto it=targetMap.begin(); it!= targetMap.end(); it++){
+		if(it->second->CheckData(dataId)){
+			return it->second->GetTier();
+		}
+	}
+}
 
 
+// For Migration
+
+void TargetTable::MigrationStart(uint16_t dataId, uint16_t destTargetId, uint64_t filesize){
+	std::cout << "MIG START // dataId : " << dataId << ", dest : "<< destTargetId << std::endl;
+	
+	// secure migration space
+	if(targetMap[destTargetId]->CheckRemainingSpace(filesize)){
+		targetMap[destTargetId]->SetCurrentSize(targetMap[destTargetId]->GetCurrentSize() + filesize);
+	};
+
+	// Set data's state to NowMigration
+	dataObjectMap[dataId]->SetNowMigration(true);
+
+	// Make New entry of migration progress
+	Ptr<Migration> migration = new Migration(dataId, GetTargetOfDataObject(dataId), destTargetId,  MIGRATIONTIME, filesize); 
+
+	// Set Callback
+	migration->SetSendTTReadCallback(MakeCallback(&TargetTable::SendTTReadRequestPacket, this));
+	migration->SetSendTTWriteCallback(MakeCallback(&TargetTable::SendTTWriteRequestPacket, this));
+	migration->SetSendTTFinishCallback(MakeCallback(&TargetTable::MigrationFinish, this));
+
+	// Start Event
+	migration->SendReadRequest();
+	migrationProgress[dataId] = migration;
+
+}
+
+void TargetTable::MigrationFinish(uint16_t dataId, uint16_t sourceTarget, uint16_t destTarget, uint64_t filesize){
+	std::cout << "MIG FINISH // dataI?d : " << dataId << ",dest : "<< destTarget << std::endl;
+	// Change data's NowMigration
+	dataObjectMap[dataId]->SetNowMigration(false);
+
+	// Remove secured space
+	targetMap[destTarget]->SetCurrentSize(targetMap[destTarget]->GetCurrentSize() - filesize);
+
+	// Migration
+	targetMap[sourceTarget]->RemoveData(dataId);
+	targetMap[destTarget]->AddData(dataId, filesize, dataObjectMap[dataId]); 
+	
+	// Delete Migration Progress
+	migrationProgress.erase(dataId);
+}
+
+void TargetTable::SetSendHostReadCallback(sendHostReadCallback scb){
+	m_sendHostReadCallback = scb;
+};
+
+void TargetTable::SetSendHostWriteCallback(sendHostWriteCallback scb){
+	m_sendHostWriteCallback = scb;
+};
+
+// Migration comm. from Migration Object
+
+void TargetTable::SendTTReadRequestPacket(uint16_t dataId){
+	m_sendHostReadCallback(1,dataId); //1 is Migration
+};
+
+void TargetTable::SendTTWriteRequestPacket(uint16_t dataId, uint16_t targetId){
+	m_sendHostWriteCallback(dataId, targetId);
+};
+
+
+// Migration comm. from Host
+
+void TargetTable::GetReadResponsePacket(uint16_t dataId){
+	auto it = migrationProgress.find(dataId);
+	if(it != migrationProgress.end())
+		migrationProgress[dataId]->GetReadResponse();
+};
+
+void TargetTable::GetWriteResponsePacket(uint16_t dataId){
+	auto it = migrationProgress.find(dataId);
+	if(it != migrationProgress.end())
+		migrationProgress[dataId]->GetWriteResponse();
+};
 
 }

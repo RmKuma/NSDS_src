@@ -8,7 +8,7 @@
 #include "ns3/inet6-socket-address.h"
 #include "ns3/address.h"
 #include "opengym-parameter.h"
-
+#include "migration.h"
 #include <map>
 
 namespace ns3 {
@@ -20,6 +20,7 @@ namespace ns3 {
 			uint16_t m_target;
 			uint64_t m_dataSize;
 			float m_popularity;
+			bool m_nowMigration;
 
 		public:
 			DataObject () {};
@@ -31,19 +32,18 @@ namespace ns3 {
 			};
 			virtual ~DataObject () {};
 
-			void SetTarget(uint16_t target){
-				m_target = target;
-			};
 			void SetPopularity(float popularity){
 				m_popularity = popularity;
 			};
-
-
+			void SetNowMigration(bool now){
+				m_nowMigration = now;
+			};
+			
+			bool GetNowMigration(){
+				return m_nowMigration;
+			};
 			uint16_t GetObjectId(){
 				return m_objectId;
-			};
-			uint16_t GetTarget(){
-				return m_target;
 			};
 			uint64_t GetSize(){
 				return m_dataSize;
@@ -58,19 +58,15 @@ class TargetElement : public Object
 {
 public:
 	uint64_t m_maxSize;
-	uint64_t m_currentSize;
 
 private:
 	uint16_t m_tier;
+	uint64_t m_currentSize;
 	std::map<uint16_t, Ptr<DataObject>> dataObjectMap;
-	Ipv4Address m_ip;
-	uint16_t m_port;
 
 public:
 	TargetElement (uint16_t tier, Ipv4Address ip, uint16_t port, uint64_t size) {
 		m_tier = tier;
-		m_ip = ip;
-		m_port = port;
 		m_maxSize = size;
 		m_currentSize = 0;
 	};
@@ -95,16 +91,27 @@ public:
 		}
 	}
 
+	bool CheckData(uint16_t dataId){
+		std::map<uint16_t, Ptr<DataObject>>::iterator it = dataObjectMap.find(dataId);
+		if(it != dataObjectMap.end())
+			return true;
+		else
+			return false;
+	}
+
 	uint16_t GetTier(){
 		return m_tier;
 	}
-	uint16_t GetPort(){
-		return m_port;
+
+	uint64_t GetCurrentSize(){
+		return m_currentSize;
 	}
-	Ipv4Address GetIp(){
-		return m_ip;
-	}
+
+	void SetCurrentSize(uint64_t size){
+		m_currentSize = size;
+	};
 };
+
 
 class TargetTable 
 {
@@ -120,22 +127,45 @@ public:
 		return m_totalDataObjects;
 	};
 
-	void AddTarget(uint16_t tier, Ipv4Address ip, uint16_t port);
+	//For Data Object
+	std::map<uint16_t, Ptr<DataObject>> dataObjectMap; 
+	uint16_t GetTargetOfDataObject(uint16_t dataId);
 	void AddDataObjects(uint16_t numberOfData); 		
 	uint16_t SelectData();
-	//Data Object
-	std::map<uint16_t, Ptr<DataObject>> dataObjectMap; 
-	//Target
+
+	//For Target Node
 	std::map<uint16_t, Ptr<TargetElement>> targetMap;
+	void AddTarget(uint16_t tier, Ipv4Address ip, uint16_t port);
+	
+	//For Migration
+	typedef Callback<void, int16_t, uint16_t> sendHostReadCallback;
+	void SetSendHostReadCallback(sendHostReadCallback scb);
+
+	typedef Callback<void, uint16_t, uint16_t> sendHostWriteCallback;
+	void SetSendHostWriteCallback(sendHostWriteCallback scb);
+
+	std::map<uint16_t, Ptr<Migration>> migrationProgress; //key is dataObjectId
+	
+	void MigrationStart(uint16_t dataId, uint16_t destTargetId, uint64_t filesize);
+	void MigrationFinish(uint16_t dataId, uint16_t sourceTarget, uint16_t destTarget, uint64_t filesize);
+
+	void SendTTReadRequestPacket(uint16_t dataId);
+	void SendTTWriteRequestPacket(uint16_t datId, uint16_t targetId);
+
+	void GetReadResponsePacket(uint16_t dataId);
+	void GetWriteResponsePacket(uint16_t dataId);
+
 
 private:
 	uint16_t m_totalTargets;
 	uint16_t m_totalDataObjects;
 
+	sendHostReadCallback m_sendHostReadCallback;
+	sendHostWriteCallback m_sendHostWriteCallback;
+
 };
 
 }
 
-#define m_dataObjectTable ns3::DataObectTable::Instance()
 #endif // DATA_OBJECT_TABLE_H
 

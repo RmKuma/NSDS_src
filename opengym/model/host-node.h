@@ -69,7 +69,7 @@ public:
 	void CreateUser(uint16_t userId);
 	void PrintResult();
 
-	void HandleRead (uint16_t userId, uint64_t timestamp);
+	void HandleRead (uint16_t userId, uint64_t timestamp, int16_t type);
 	float GetAverageReward(){
 		return (float)m_totalReward/(float)m_totalSteps;
 	};
@@ -80,7 +80,8 @@ private:
 	/*Send Methods*/
 	//void EnqueueReadRequest(uint32_t flowNumber);
 	void HeuristicAction_knapsack(uint64_t obsArray[][6]);
-    void SendReadRequestPacket (uint16_t userId);
+    void SendReadRequestPacket (int16_t type, uint16_t userId);
+	void SendWriteRequestPacket (uint16_t dataId, uint16_t targetId);
    	void SendTargetFromBuffer(uint16_t target);
 
     /*Recv Methods*/
@@ -93,7 +94,7 @@ private:
 	void PopularityChangeSmooth(uint16_t smoothing);
 	//void SendRateChange();
 
-	void SendObs(uint64_t obsArray[][6], int32_t rew);
+	void SendObs(uint64_t obsArray[][6],float  rew);
 	//void GetAction();
 	
 private:
@@ -102,7 +103,7 @@ private:
 	uint64_t m_totalTx, m_totalTxPackets;
 	uint64_t m_totalRx;
 
-	int64_t m_totalReward;
+	float m_totalReward;
 	int64_t m_totalSteps;
 
 	TargetTable m_targetTable{};
@@ -134,7 +135,7 @@ private:
 
 	std::default_random_engine gen;
 	std::normal_distribution<double> serviceTimeDistri{SERVICETIMEAVG, SERVICETIMESTD}; 
-	std::normal_distribution<double> targetDelayDistri{1800, 200.0};
+	std::normal_distribution<double> targetDelayDistri{1800, 250.0};
 	std::normal_distribution<double> popularityDistri{0, 0.01};
 
 	zmq::context_t _context{1};

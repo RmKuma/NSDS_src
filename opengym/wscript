@@ -22,6 +22,7 @@ def build(bld):
 		'model/target-table.cc',
 		'model/jsoncpp.cpp',
 		'model/user.cc',
+		'model/migration.cc',
         'helper/opengym-helper.cc',
         ]
 
@@ -44,6 +45,7 @@ def build(bld):
 		'model/opengym-parameter.h',
 		'model/target-table.h',
 		'model/user.h',
+		'model/migration.h',
         'helper/opengym-helper.h',
         ]
 

@@ -38,6 +38,7 @@
 #include <deque>
 #include <map>
 #include <memory>
+#include <tuple>
 
 namespace ns3 {
 
@@ -53,13 +54,13 @@ public:
 	uint64_t GetTotalTxPackets () const;
 	void SetTier (uint16_t tier);
 
-	typedef Callback<void, uint16_t, uint64_t> requestCallback;
+	typedef Callback<void, uint16_t, uint64_t, int16_t> requestCallback;
 	requestCallback m_requestCallback;
 	void SetRequestCallback(requestCallback reqcb){
 		m_requestCallback = reqcb;
 	};
-
-	void HandleRead (uint16_t userId, uint64_t timestamp);
+	
+	void HandleRead (uint16_t userId, uint64_t timestamp, int16_t type);
 private:
     virtual void StartApplication ();
     virtual void StopApplication ();
@@ -70,7 +71,7 @@ private:
    
 	void HandleAccept (Ptr<Socket> socket, const Address& from);
 	void GetNextRequestFromBuffer ();
-	void SendReadResultPacket ();
+	void SendResponsePacket ();
 
 
 private:
@@ -79,12 +80,10 @@ private:
 	uint64_t m_requestDelay_a, m_requestDelay_b;
 	uint64_t m_totalRx, m_totalRxPackets, m_totalTxPackets;
 
-	std::deque<std::pair<uint16_t, uint64_t>> m_requestQueue;
-	
 	Ptr<Socket> m_requestSocket;
 	std::list<Ptr<Socket>> m_requestSocketList;
 	Ptr<Socket> m_resultSocket;
-	std::deque<std::pair<uint16_t, uint64_t>> m_submissionQueue;
+	std::deque<std::tuple<uint16_t, uint64_t, int16_t>> m_submissionQueue;
 
 
 	bool  m_requestSocketConnected;
@@ -95,9 +94,8 @@ private:
 	EventId m_checkNextRequestEvent;
 	EventId m_getRequestEvent;
 	
-	
 	std::map<uint16_t, uint64_t> packetCounter;
-	std::deque<std::pair<uint16_t, uint64_t>> m_rxBuffer;
+	std::deque<std::tuple<uint16_t, uint64_t, int16_t>> m_rxBuffer;
 };
 
 }

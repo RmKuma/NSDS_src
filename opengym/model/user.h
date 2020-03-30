@@ -62,10 +62,10 @@ public:
 	};
 
 	uint64_t GetTargetThroughput(){
-		return (float)FILESIZE/((float)(m_serviceTime)/1000000.0);
+		return ((float)FILESIZE*1000.0f)/((float)(m_serviceTime)/1000000.0);
 	}
 	
-	typedef Callback<void, uint16_t> sendCallback;
+	typedef Callback<void, int16_t, uint16_t> sendCallback;
 	void SetSendCallback(sendCallback scb);	
 	
 	void SendRequest();

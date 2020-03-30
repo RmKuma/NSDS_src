@@ -53,7 +53,7 @@ main (int argc, char *argv[])
 	uint32_t numFlows = 4;
 
 	float endTime = 200.0;
-	int gym_port = 5555;
+	int gym_port = 5571;
 	bool heuristic = false;
 
 	float epiRewardSum = 0;
@@ -134,9 +134,6 @@ main (int argc, char *argv[])
 			hostApp-> AddTarget(target, ipMap[target], port, appMap[target]);
 		}
 
-		for (uint32_t flow = 0; flow < numFlows; flow++){
-			//hostApp-> AddFlow(flow%numTargets, INITRATE); // Inital Tier is 0 and Inital Sending Rate is 100Mbps
-		}
 
 		hostApp->SetStartTime (Seconds (1.0));
 		hostApp->SetStopTime (Seconds (endTime));
@@ -149,7 +146,7 @@ main (int argc, char *argv[])
 	
 		epiRewardSum += hostApp->GetAverageReward();
 		epi++;
-		std::cout << "AVG REWARD : " << epiRewardSum / epi << std::endl;
+		std::cout << "AVG REWARD : " << epiRewardSum/epi << std::endl;
 	}
 	std::cout << "Simulator ENDED" << std::endl;
 }

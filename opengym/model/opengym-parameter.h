@@ -9,8 +9,7 @@
 
 #define INITRATE 350000
 #define INITDELAY 5500
-#define FILESIZE   100000000 //100MB
-#define TARGETSIZE 300000000 //300MB
+#define FILESIZE   100000 //KB
 
 #define NUMOFTIER 3
 static uint16_t TIERS[NUMOFTIER] = {1,1,1};
@@ -18,8 +17,10 @@ static uint16_t TIERS[NUMOFTIER] = {1,1,1};
 #define ZIPFALPHA 0.55
 
 #define TARGETS 3
-#define DATAS 8
+#define DATAS 8 
 #define USERS 24
+
+#define TARGETSIZE FILESIZE*DATAS //300MB
 
 #define OR_PAGESIZE 8192
 #define REQUESTSIZE 
@@ -33,7 +34,7 @@ static uint16_t TIERS[NUMOFTIER] = {1,1,1};
 #define SERVICETIMESTD 10000000
 #define MAXSERVICETIME 55000000
 #define MINSERVICETIME  5000000
-
+#define MIGRATIONTIME SERVICETIMEAVG/3
 
 #define OBS_INTERVAL 1000
 #define PC_INTERVAL 5000
@@ -42,4 +43,5 @@ static uint16_t TIERS[NUMOFTIER] = {1,1,1};
 
 #define QUEUE_DEPTH 32
 #define MAX_TARGET_QUEUE 1024
+#define DELAY_UP 18
 #endif

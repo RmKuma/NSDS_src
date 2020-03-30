@@ -18,9 +18,10 @@ User::User (uint16_t userId, uint16_t dataObjectId, uint64_t serviceTime, uint64
 , m_currentDelay{0}
 , m_currentPackets{0}
 {
-	float requestPerMicroSecond = ((float)(FILESIZE/OR_PAGESIZE) / serviceTime);
+	float requestPerMicroSecond = ((float)FILESIZE * 1000.0f/(float)OR_PAGESIZE) / serviceTime;
 	m_requestInterval = (uint64_t) (1/requestPerMicroSecond );
-	m_totalRequests = (uint64_t) (FILESIZE/OR_PAGESIZE);
+	m_totalRequests = (uint64_t) ((float)FILESIZE * 1000.0f/(float)OR_PAGESIZE);
+
 }
 
 User::~User() {
@@ -36,7 +37,7 @@ void User::SendRequest(){
 			sendCounter[m_dataObjectId] = 0;
 		else
 			sendCounter[m_dataObjectId]++;
-		m_sendCallback(m_userId);
+		m_sendCallback(0, m_userId); // 0 is for user request
 		m_SendEvent = Simulator::Schedule(MicroSeconds (m_requestInterval), &User::SendRequest, this);
 	}
 };

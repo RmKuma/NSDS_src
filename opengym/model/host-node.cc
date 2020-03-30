@@ -90,6 +90,10 @@ void HostNode::StartApplication ()
 	_socket.bind("tcp://*:" + std::to_string(m_gymPort));
 	std::cout << "Bind Socket" << std::endl;
 
+	//set callback for targetTable
+	m_targetTable.SetSendHostReadCallback(MakeCallback(&HostNode::SendReadRequestPacket, this));
+	m_targetTable.SetSendHostWriteCallback(MakeCallback(&HostNode::SendWriteRequestPacket,this));
+
 	//Create Sockets between host and each target
 	for(uint16_t target = 0; target < m_targetTable.GetTotalTargets(); target++){
 		/*
@@ -127,7 +131,7 @@ void HostNode::CreateUser(uint16_t userId){
 	uint64_t targetDelay = std::min(std::max((uint64_t)std::round(targetDelayDistri(gen)), (uint64_t)1200), (uint64_t)2400);
 	Ptr<User> user = new User(userId, dataObjectId, serviceTime, targetDelay);
 	// Create socket
-	uint16_t target = m_targetTable.dataObjectMap[dataObjectId]->GetTarget();
+	uint16_t target = m_targetTable.GetTargetOfDataObject(dataObjectId);
 	user->SetSendCallback(MakeCallback(&HostNode::SendReadRequestPacket,this));
 	//std::cout << "User " << userId << ", dataObjectId : " <<  dataObjectId <<  ", data position " << target << ", Total Requests : " << user->GetTotalRequests() << ", serviceTime : " << serviceTime << ", targetDelay : " << targetDelay << std::endl;
 	m_users[userId] = user;
@@ -152,35 +156,56 @@ void HostNode::StopApplication ()
 	std::cout << "stop host application" << std::endl;
 }
 
-void HostNode::SendReadRequestPacket (uint16_t userId)
+void HostNode::SendReadRequestPacket (int16_t type, uint16_t Id)
 {
-	uint16_t dataObjectId = m_users[userId]->GetDataObjectId();
-	uint16_t target = m_targetTable.dataObjectMap[dataObjectId]->GetTarget();
-
+	uint16_t dataObjectId;
+	if(type == 0){
+		// Send Read Request by User
+		dataObjectId = m_users[Id]->GetDataObjectId();
+	}else if(type == 1){
+		// Send Read Request for Migration
+		// Migration's read request use DataId as Id
+		dataObjectId = Id;
+	}
+	
+	uint16_t target = m_targetTable.GetTargetOfDataObject(dataObjectId);
     uint64_t  nowUs = Simulator::Now ().GetMicroSeconds ();
    	NS_ASSERT (nowUs >= 0); 
-	Simulator::ScheduleNow(&TargetNode::HandleRead,  m_targetPtrs[target], userId, nowUs);	
+
+	Simulator::ScheduleNow(&TargetNode::HandleRead,  m_targetPtrs[target], Id, nowUs, type);	
 }
 
-void HostNode::HandleRead (uint16_t userId, uint64_t timestamp){
+void HostNode::SendWriteRequestPacket (uint16_t dataId, uint16_t targetId){
+	uint16_t dataObjectId = dataId;
+	uint16_t target = targetId;
+    uint64_t  nowUs = Simulator::Now ().GetMicroSeconds ();
+   	NS_ASSERT (nowUs >= 0); 
+
+	Simulator::ScheduleNow(&TargetNode::HandleRead,  m_targetPtrs[target], dataObjectId, nowUs, 2);	
+}
+
+
+void HostNode::HandleRead (uint16_t userId, uint64_t timestamp, int16_t type){
     uint64_t nowUs = Simulator::Now ().GetMicroSeconds ();
-	m_users[userId]->AfterGetPacket(OR_PAGESIZE, (uint32_t)(nowUs-timestamp + 20));
+	if(type == 0){
+		// Read response for User
+		m_users[userId]->AfterGetPacket(OR_PAGESIZE, (uint32_t)(nowUs-timestamp + 20));
+	}else if(type == 1){
+		// Read response for Migration
+		m_targetTable.GetReadResponsePacket(userId);		
+	}else if(type == 2){
+		// Write response for Migration
+		m_targetTable.GetWriteResponsePacket(userId);
+	}
 }
 
 void HostNode::Migration(uint16_t dataObject, uint16_t destination_target){
-	uint16_t currentTarget = m_targetTable.dataObjectMap[dataObject]->GetTarget();
+	uint16_t currentTarget = m_targetTable.GetTargetOfDataObject(dataObject);
 	
-	//std::cout << "target : " << destination_target << ", max,current : " << m_targetTable.targetMap[destination_target]->m_maxSize << " " << m_targetTable.targetMap[destination_target]->m_currentSize << std::endl;
-	if(m_targetTable.targetMap[destination_target]->CheckRemainingSpace(FILESIZE)){
-		//Remove data Object from original target
-		m_targetTable.targetMap[currentTarget]->RemoveData(dataObject);
-		
-		//Change Data Object
-		m_targetTable.dataObjectMap[dataObject]->SetTarget(destination_target);
+	if(currentTarget == destination_target) return;
 
-		//Add data Object to destination target
-		m_targetTable.targetMap[destination_target]->AddData(dataObject, m_targetTable.dataObjectMap[dataObject]->GetSize(), m_targetTable.dataObjectMap[dataObject]);
-
+	if(m_targetTable.targetMap[destination_target]->CheckRemainingSpace(FILESIZE) && !m_targetTable.dataObjectMap[dataObject]->GetNowMigration()){
+		m_targetTable.MigrationStart(dataObject, destination_target, FILESIZE);
 	}
 }
 
@@ -199,7 +224,7 @@ void HostNode::Observe (){
 		for(uint16_t user=0;user<USERS;user++)
 			if(m_users[user]->GetDataObjectId() == data) check++;
 		datas[data][0] = check;
-		datas[data][1] = m_targetTable.dataObjectMap[data]->GetTarget();
+		datas[data][1] = m_targetTable.GetTargetOfDataObject(data);
 		
 		//MIN Target Delay
 		uint64_t min_tdelay = 999999;
@@ -224,7 +249,7 @@ void HostNode::Observe (){
 		for(uint16_t user=0;user<USERS;user++)
 			if(m_users[user]->GetDataObjectId() == data) throughputSum += m_users[user]->GetCurrentGoodput();
 		if(datas[data][0])	datas[data][5] = throughputSum/datas[data][0];
-		/*
+	/*	
 		std::cout << "Data " << data << " N : " << datas[data][0] <<
 										" POS : " << datas[data][1] << 
 										" TD : " << datas[data][2] <<
@@ -233,12 +258,12 @@ void HostNode::Observe (){
 										" T : " << datas[data][5] <<
 										" P : " << m_targetTable.dataObjectMap[data]->GetPopularity() << 
 										std::endl;
-		*/	
+	*/		
 	}
 	
 	//std::cout << "===============================================" << std::endl <<  "================== users ======================" << std::endl;
 
-	int16_t reward= 0;
+	float reward= 0;
 
 	for(uint16_t user = 0; user < USERS; user++){
 		/*std::cout << " User " << user << 
@@ -249,23 +274,18 @@ void HostNode::Observe (){
 					 " TT : " << m_users[user]->GetTargetThroughput() << 
 					 " T : " << m_users[user]->GetCurrentGoodput() << std::endl;
 		*/
-		if(m_users[user]->GetTargetDelay() > m_users[user]->GetCurrentDelay()
-			&& m_users[user]->GetTargetThroughput() * 0.9 < m_users[user]->GetCurrentGoodput())
-			reward ++;
-		else
-			reward --;
+		reward += std::min((float)1.0, (float)m_users[user]->GetTargetDelay()/(float)m_users[user]->GetCurrentDelay()) * 0.5 + std::min((float)1.0,(float)m_users[user]->GetCurrentGoodput()/(float)m_users[user]->GetTargetThroughput()) * 0.5;
+			
 		m_users[user]->AfterGathering();
-		
-		//calculate reward
+	
 		if(m_users[user]->IsFinished()){
-			//PrintResult();
 			m_users[user]->Dispose();
 			CreateUser(user);
 			m_users[user]->SendRequest();
 		}	
 
 	}
-	
+	reward /= USERS;
 	std::cout << "=============reward : " << reward << "=================" << std::endl;
 	
 	m_totalSteps++;
@@ -279,6 +299,7 @@ void HostNode::Observe (){
 
 void HostNode::HeuristicAction_knapsack(uint64_t datas[][6]){
 	std::deque<uint16_t> index;
+	uint64_t totalThroughput = 0;
 
 	while(index.size() != DATAS){
 		uint64_t max = 0;
@@ -291,15 +312,24 @@ void HostNode::HeuristicAction_knapsack(uint64_t datas[][6]){
 		}
 		index.push_back(idx);	
 	}
+	
+	for(uint16_t data = 0; data < DATAS; data++){
+		totalThroughput += (datas[data][4] * datas[data][0]);
+	}
+/*	
+	for(int i = 0; i < index.size(); i++)
+		std::cout << index[i];
+	std::cout << std::endl;
+*/
 
 	uint16_t target = 0;
-	uint16_t check = 0;
+	uint64_t throughputCheck = 0;
 	while(index.size() != 0){
 		uint16_t idx = index.front();
 		Migration(idx, target);
-		check++;
-		if(check == (TARGETSIZE/FILESIZE)){
-			check = 0;
+		throughputCheck += (datas[idx][4] * datas[idx][0]);
+		if(throughputCheck >= totalThroughput/TARGETS ){
+			throughputCheck = 0;
 			target++;
 		}
 		index.pop_front();
@@ -363,7 +393,7 @@ void HostNode::SendReset(){
 	std::cout << "Send reset" << std::endl;
 }
 
-void HostNode::SendObs(uint64_t obsArray[][6], int32_t reward){
+void HostNode::SendObs(uint64_t obsArray[][6], float reward){
 
 	//Read actionJson String
 	zmq::message_t action;
