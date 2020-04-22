@@ -13,11 +13,14 @@ Migration::Migration ( uint16_t dataObjectId, uint16_t readTarget, uint16_t writ
 , m_fileSize{fileSize}
 , m_readTarget{readTarget}
 , m_writeTarget{writeTarget}
+, m_readPackets{0}
+, m_writePackets{0}
+, m_endTime{0}
 {
 	float requestPerMicroSecond = (((float)m_fileSize * 1000.0f)/(float)OR_PAGESIZE) / m_serviceTime;
 	m_requestInterval = (uint64_t) (1/requestPerMicroSecond );
 	m_totalRequests = (uint64_t) ((float)m_fileSize * 1000.0f / (float)OR_PAGESIZE);
-
+	m_generatedTime = Simulator::Now().GetMicroSeconds();
 }
 
 Migration::~Migration() {
@@ -43,15 +46,18 @@ void Migration::SendReadRequest(){
 }
 
 void Migration::GetReadResponse(){
+	m_readPackets++;
 	if(!m_finished){
 		m_sendTTWriteCallback(m_dataObjectId, m_writeTarget);
 	}
 }
 
 void Migration::GetWriteResponse(){
+	m_writePackets++;
 	m_currentRequests++;
 	if(m_currentRequests == m_totalRequests){
 		m_finished = true;
+		m_endTime = Simulator::Now().GetMicroSeconds();
 		m_sendTTFinishCallback(m_dataObjectId, m_readTarget, m_writeTarget, m_fileSize);
 		CancelSendEvent();
 	}

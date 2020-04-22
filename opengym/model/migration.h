@@ -34,8 +34,39 @@ public:
 
 	uint64_t GetTargetThroughput(){
 		return (float)m_fileSize/((float)(m_serviceTime)/1000000.0);
-	}
+	};
+
+	uint16_t GetReadTarget(){
+		return m_readTarget;
+	};
+
+	uint16_t GetWriteTarget(){
+		return m_writeTarget;
+	};
+
+	uint64_t GetGeneratedTime(){
+		return m_generatedTime;
+	};
+
+	uint64_t GetEndTime(){
+		return m_endTime;
+	};
+
+	uint64_t GetCurrentReadPackets(){
+		return m_readPackets;
+	};
+
+	uint64_t GetCurrentWritePackets(){
+		return m_writePackets;
+	};
 	
+	void AfterGathering(){
+		m_readPackets = 0;
+		m_writePackets = 0;
+	};
+
+
+
 	typedef Callback<void, uint16_t> sendTTReadCallback;
 	void SetSendTTReadCallback(sendTTReadCallback scb);	
 	
@@ -61,6 +92,10 @@ private:
 	uint64_t m_totalRequests;		// Total amount of requests to send
 	uint64_t m_currentRequests;		// amount of requests sent before gathering
 	uint64_t m_fileSize;
+	uint64_t m_generatedTime;
+	uint64_t m_readPackets;
+	uint64_t m_writePackets;
+	uint64_t m_endTime;
 
 	sendTTReadCallback m_sendTTReadCallback;
 	sendTTFinishCallback m_sendTTFinishCallback;

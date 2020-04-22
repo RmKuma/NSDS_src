@@ -128,7 +128,7 @@ void HostNode::CreateUser(uint16_t userId){
 	// Select Data User want to receive
 	uint16_t dataObjectId = m_targetTable.SelectData();
 	uint64_t serviceTime = std::min(std::max((uint64_t)std::round(serviceTimeDistri(gen)), (uint64_t)MINSERVICETIME),(uint64_t)MAXSERVICETIME);
-	uint64_t targetDelay = std::min(std::max((uint64_t)std::round(targetDelayDistri(gen)), (uint64_t)1200), (uint64_t)2400);
+	uint64_t targetDelay = std::min(std::max((uint64_t)std::round(targetDelayDistri(gen)), (uint64_t)1000), (uint64_t)2600);
 	Ptr<User> user = new User(userId, dataObjectId, serviceTime, targetDelay);
 	// Create socket
 	uint16_t target = m_targetTable.GetTargetOfDataObject(dataObjectId);
@@ -215,6 +215,7 @@ void HostNode::Observe (){
 
 	uint64_t obs [USERS][5] = {0};
 	uint64_t datas[DATAS][6] = {0};
+	uint64_t mig [DATAS][6] ={0};
 	uint64_t x = 0, y = 0;
 	double successedUser = 0;
 
@@ -249,7 +250,6 @@ void HostNode::Observe (){
 		for(uint16_t user=0;user<USERS;user++)
 			if(m_users[user]->GetDataObjectId() == data) throughputSum += m_users[user]->GetCurrentGoodput();
 		if(datas[data][0])	datas[data][5] = throughputSum/datas[data][0];
-	/*	
 		std::cout << "Data " << data << " N : " << datas[data][0] <<
 										" POS : " << datas[data][1] << 
 										" TD : " << datas[data][2] <<
@@ -258,7 +258,6 @@ void HostNode::Observe (){
 										" T : " << datas[data][5] <<
 										" P : " << m_targetTable.dataObjectMap[data]->GetPopularity() << 
 										std::endl;
-	*/		
 	}
 	
 	//std::cout << "===============================================" << std::endl <<  "================== users ======================" << std::endl;
@@ -275,7 +274,13 @@ void HostNode::Observe (){
 					 " T : " << m_users[user]->GetCurrentGoodput() << std::endl;
 		*/
 		reward += std::min((float)1.0, (float)m_users[user]->GetTargetDelay()/(float)m_users[user]->GetCurrentDelay()) * 0.5 + std::min((float)1.0,(float)m_users[user]->GetCurrentGoodput()/(float)m_users[user]->GetTargetThroughput()) * 0.5;
-			
+		
+		obs[user][0] = m_users[user]->GetDataObjectId();
+		obs[user][1] = m_users[user]->GetCurrentDelay();
+		obs[user][2] = m_users[user]->GetCurrentPackets();
+		obs[user][3] = m_users[user]->GetGeneratedTime();
+		obs[user][4] = m_users[user]->GetEndTime();
+
 		m_users[user]->AfterGathering();
 	
 		if(m_users[user]->IsFinished()){
@@ -283,8 +288,23 @@ void HostNode::Observe (){
 			CreateUser(user);
 			m_users[user]->SendRequest();
 		}	
-
 	}
+	for(uint16_t data = 0; data < DATAS; data++){
+		if(m_targetTable.dataObjectMap[data]->GetNowMigration()){
+			mig[data][0] = m_targetTable.migrationProgress[data]->GetGeneratedTime();
+			mig[data][1] = m_targetTable.migrationProgress[data]->GetEndTime();
+			mig[data][2] = m_targetTable.migrationProgress[data]->GetReadTarget();
+			mig[data][3] = m_targetTable.migrationProgress[data]->GetWriteTarget();
+			mig[data][4] = m_targetTable.migrationProgress[data]->GetCurrentReadPackets();
+			mig[data][5] = m_targetTable.migrationProgress[data]->GetCurrentWritePackets();
+				
+			m_targetTable.migrationProgress[data]->AfterGathering();
+
+			if(m_targetTable.migrationProgress[data]->IsFinished())
+				m_targetTable.MigrationDelete(data);
+		}
+	}
+
 	reward /= USERS;
 	std::cout << "=============reward : " << reward << "=================" << std::endl;
 	
@@ -292,7 +312,7 @@ void HostNode::Observe (){
 	m_totalReward += reward;
 
 	//HeuristicAction_knapsack(datas);
-	SendObs(datas, reward);	
+	SendObs(datas, obs, mig, reward);	
 	m_ObsEvent = Simulator::Schedule(MilliSeconds (OBS_INTERVAL), &HostNode::Observe, this);
 
 }
@@ -382,6 +402,8 @@ void HostNode::SendReset(){
 	
 	Json::Value obsJson;
 	obsJson["obs"] = 0;
+	obsJson["mig"] = 0;
+	obsJson["user"] = 0;
 	obsJson["reward"] = 0;
 	obsJson["done"] = 1;
 	Json::FastWriter writer;
@@ -393,7 +415,7 @@ void HostNode::SendReset(){
 	std::cout << "Send reset" << std::endl;
 }
 
-void HostNode::SendObs(uint64_t obsArray[][6], float reward){
+void HostNode::SendObs(uint64_t obsArray[][6], uint64_t userArray[][5], uint64_t migArray[][6], float reward){
 
 	//Read actionJson String
 	zmq::message_t action;
@@ -426,9 +448,28 @@ void HostNode::SendObs(uint64_t obsArray[][6], float reward){
 			datajson.append(obsArray[data][i]);
 		obs.append(datajson);
 	}
+	
+	Json::Value mig;
+	for(uint16_t data = 0; data < DATAS; data++){
+		Json::Value migjson;
+		for(int i = 0; i < 6; i++)
+			migjson.append(migArray[data][i]);
+		mig.append(migjson);
+	}
+	
+	Json::Value user_obs;
+	for(uint16_t user = 0; user < USERS; user++){
+		Json::Value userjson;
+		for(int i = 0; i < 5; i++)
+			userjson.append(userArray[user][i]);
+		user_obs.append(userjson);
+	}
+
 
 	Json::Value obsJson;
 	obsJson["obs"] = obs;
+	obsJson["mig"] = mig;
+	obsJson["user"] = user_obs;
 	obsJson["reward"] = reward;
 	obsJson["done"] = 0;
 	Json::FastWriter writer;

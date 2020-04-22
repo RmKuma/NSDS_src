@@ -94,7 +94,7 @@ private:
 	void PopularityChangeSmooth(uint16_t smoothing);
 	//void SendRateChange();
 
-	void SendObs(uint64_t obsArray[][6],float  rew);
+	void SendObs(uint64_t obsArray[][6],  uint64_t userArray[][5], uint64_t migArray [][6], float  rew);
 	//void GetAction();
 	
 private:
@@ -135,7 +135,7 @@ private:
 
 	std::default_random_engine gen;
 	std::normal_distribution<double> serviceTimeDistri{SERVICETIMEAVG, SERVICETIMESTD}; 
-	std::normal_distribution<double> targetDelayDistri{1800, 250.0};
+	std::normal_distribution<double> targetDelayDistri{1800, 300.0};
 	std::normal_distribution<double> popularityDistri{0, 0.01};
 
 	zmq::context_t _context{1};

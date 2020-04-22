@@ -17,11 +17,13 @@ User::User (uint16_t userId, uint16_t dataObjectId, uint64_t serviceTime, uint64
 , m_currentGoodput{0}
 , m_currentDelay{0}
 , m_currentPackets{0}
+, m_currentSending{true}
+, m_endTime{0}
 {
 	float requestPerMicroSecond = ((float)FILESIZE * 1000.0f/(float)OR_PAGESIZE) / serviceTime;
 	m_requestInterval = (uint64_t) (1/requestPerMicroSecond );
 	m_totalRequests = (uint64_t) ((float)FILESIZE * 1000.0f/(float)OR_PAGESIZE);
-
+	m_generatedTime = Simulator::Now().GetMicroSeconds();
 }
 
 User::~User() {
@@ -61,6 +63,7 @@ void User::AfterGetPacket(uint64_t size, uint64_t delay){
 	
 	if(m_currentResults == m_totalRequests){
 		m_finished = true;
+		m_endTime = Simulator::Now().GetMicroSeconds();
 	}
 }
 

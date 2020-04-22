@@ -56,13 +56,40 @@ public:
 	uint64_t GetCurrentGoodput(){
 		return m_currentGoodput;
 	}
-	
+
+	uint64_t GetGeneratedTime(){
+		return m_generatedTime;
+	}
+
+	uint64_t GetEndTime(){
+		return m_endTime;
+	}
+
+
+	uint64_t GetCurrentPackets(){
+		return m_currentPackets;
+	}
+
 	void SetTargetDelay(uint64_t delay){
 		m_targetDelay = delay;
 	};
 
 	uint64_t GetTargetThroughput(){
 		return ((float)FILESIZE*1000.0f)/((float)(m_serviceTime)/1000000.0);
+	}
+	
+	void PauseSending(){
+		if(m_currentSending){
+			Simulator::Cancel(m_SendEvent);
+			m_currentSending = false;
+		}
+	}
+
+	void ResumeSending(){
+		if(!m_currentSending){
+			SendRequest();
+			m_currentSending = true;
+		}
 	}
 	
 	typedef Callback<void, int16_t, uint16_t> sendCallback;
@@ -78,6 +105,9 @@ public:
 
 private:
 	bool m_finished;
+	bool m_currentSending;
+	uint64_t m_generatedTime;
+	uint64_t m_endTime;
 	uint16_t m_userId;
 	uint16_t m_dataObjectId;
 	uint64_t m_serviceTime;

@@ -102,19 +102,21 @@ void TargetTable::MigrationStart(uint16_t dataId, uint16_t destTargetId, uint64_
 
 void TargetTable::MigrationFinish(uint16_t dataId, uint16_t sourceTarget, uint16_t destTarget, uint64_t filesize){
 	std::cout << "MIG FINISH // dataI?d : " << dataId << ",dest : "<< destTarget << std::endl;
-	// Change data's NowMigration
-	dataObjectMap[dataId]->SetNowMigration(false);
-
 	// Remove secured space
 	targetMap[destTarget]->SetCurrentSize(targetMap[destTarget]->GetCurrentSize() - filesize);
 
 	// Migration
 	targetMap[sourceTarget]->RemoveData(dataId);
 	targetMap[destTarget]->AddData(dataId, filesize, dataObjectMap[dataId]); 
-	
-	// Delete Migration Progress
-	migrationProgress.erase(dataId);
 }
+
+void TargetTable::MigrationDelete(uint16_t dataId){
+	// Change data's NowMigration
+	dataObjectMap[dataId]->SetNowMigration(false);
+	
+	// Delete Migration Progress instance
+	migrationProgress.erase(dataId);	
+};
 
 void TargetTable::SetSendHostReadCallback(sendHostReadCallback scb){
 	m_sendHostReadCallback = scb;

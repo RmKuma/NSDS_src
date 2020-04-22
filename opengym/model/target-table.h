@@ -29,6 +29,7 @@ namespace ns3 {
 				m_dataSize = size;
 				m_target = target;
 				m_popularity = popul;
+				m_nowMigration = false;
 			};
 			virtual ~DataObject () {};
 
@@ -148,6 +149,7 @@ public:
 	
 	void MigrationStart(uint16_t dataId, uint16_t destTargetId, uint64_t filesize);
 	void MigrationFinish(uint16_t dataId, uint16_t sourceTarget, uint16_t destTarget, uint64_t filesize);
+	void MigrationDelete(uint16_t dataId);
 
 	void SendTTReadRequestPacket(uint16_t dataId);
 	void SendTTWriteRequestPacket(uint16_t datId, uint16_t targetId);

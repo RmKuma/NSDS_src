@@ -17,13 +17,12 @@ static uint16_t TIERS[NUMOFTIER] = {1,1,1};
 #define ZIPFALPHA 0.55
 
 #define TARGETS 3
-#define DATAS 8 
-#define USERS 24
+#define DATAS 10 
+#define USERS 40
 
 #define TARGETSIZE FILESIZE*DATAS //300MB
 
-#define OR_PAGESIZE 8192
-#define REQUESTSIZE 
+#define OR_PAGESIZE 4096
 #define RESPONSESIZE 120
 #define PAGESIZE 120
 #define SPEEDUP OR_PAGESIZE/PAGESIZE
@@ -43,5 +42,11 @@ static uint16_t TIERS[NUMOFTIER] = {1,1,1};
 
 #define QUEUE_DEPTH 32
 #define MAX_TARGET_QUEUE 1024
-#define DELAY_UP 18
+
+#define DELAY_UP 1
+#define DELAY_A_BASE  9
+#define DELAY_A_MULTI 9
+#define DELAY_B_BASE  800
+#define DELAY_B_MULTI 400
+
 #endif

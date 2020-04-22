@@ -80,8 +80,8 @@ void TargetNode::SetTier(uint16_t tier){
 	m_tier = tier;
 
 	//Tier set delay
-	m_requestDelay_a = (2 + (m_tier * 1)) * DELAY_UP;
-	m_requestDelay_b = (70 + (m_tier * 20)) * DELAY_UP;
+	m_requestDelay_a = (DELAY_A_BASE + (m_tier * DELAY_A_MULTI)) * DELAY_UP;
+	m_requestDelay_b = (DELAY_B_BASE + (m_tier * DELAY_B_MULTI)) * DELAY_UP;
 }
 
 void TargetNode::StartApplication (){}
